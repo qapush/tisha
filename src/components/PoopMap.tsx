@@ -1,0 +1,164 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import type { Entry } from "@/lib/types";
+
+type Props = {
+  entries: Entry[];
+  isAdmin: boolean;
+  focusId: string | null;
+  /** When true the map is in "drop a pin" mode for a photo with no GPS. */
+  placing: boolean;
+  onDelete: (id: string) => void;
+  onPick: (lat: number, lng: number) => void;
+};
+
+const DEFAULT_CENTER: [number, number] = [52.2297, 21.0122]; // Warsaw
+
+export default function PoopMap({
+  entries,
+  isAdmin,
+  focusId,
+  placing,
+  onDelete,
+  onPick,
+}: Props) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<import("leaflet").Map | null>(null);
+  const clusterRef = useRef<import("leaflet").MarkerClusterGroup | null>(null);
+  const markersRef = useRef<Map<string, import("leaflet").Marker>>(new Map());
+  const leafletRef = useRef<typeof import("leaflet") | null>(null);
+  const didFitRef = useRef(false);
+  const onDeleteRef = useRef(onDelete);
+  onDeleteRef.current = onDelete;
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
+  const placingRef = useRef(placing);
+  placingRef.current = placing;
+
+  // Leaflet touches `window` at import time, so it can only load in the browser.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const L = (await import("leaflet")).default;
+      await import("leaflet.markercluster");
+      if (cancelled || !hostRef.current || mapRef.current) return;
+
+      leafletRef.current = L;
+      const map = L.map(hostRef.current, {
+        center: DEFAULT_CENTER,
+        zoom: 13,
+        preferCanvas: true,
+      });
+
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map);
+
+      const cluster = L.markerClusterGroup({
+        maxClusterRadius: 45,
+        showCoverageOnHover: false,
+      });
+      map.addLayer(cluster);
+
+      // Read the flag through a ref so the handler is registered once and still
+      // sees the current mode.
+      map.on("click", (ev: import("leaflet").LeafletMouseEvent) => {
+        if (placingRef.current) onPickRef.current(ev.latlng.lat, ev.latlng.lng);
+      });
+
+      mapRef.current = map;
+      clusterRef.current = cluster;
+      // Force a redraw once the container has its real height.
+      setTimeout(() => map.invalidateSize(), 0);
+    })();
+
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      clusterRef.current = null;
+      markersRef.current.clear();
+    };
+  }, []);
+
+  // Rebuild markers whenever the data changes.
+  useEffect(() => {
+    const L = leafletRef.current;
+    const cluster = clusterRef.current;
+    const map = mapRef.current;
+    if (!L || !cluster || !map) return;
+
+    cluster.clearLayers();
+    markersRef.current.clear();
+
+    const icon = L.divIcon({
+      html: '<span class="poop-pin">💩</span>',
+      className: "poop-pin-wrap",
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      popupAnchor: [0, -14],
+    });
+
+    for (const e of entries) {
+      const marker = L.marker([e.lat, e.lng], { icon });
+      marker.bindPopup(() => popupHtml(e, isAdmin), { minWidth: 200 });
+      marker.on("popupopen", (ev) => {
+        const btn = ev.popup.getElement()?.querySelector<HTMLButtonElement>("[data-del]");
+        btn?.addEventListener("click", () => {
+          if (confirm("Удалить эту запись?")) onDeleteRef.current(e.id);
+        });
+      });
+      cluster.addLayer(marker);
+      markersRef.current.set(e.id, marker);
+    }
+
+    // Fit to the data once, on first load — after that leave the view alone so
+    // adding a photo doesn't yank the map out from under you.
+    if (!didFitRef.current && entries.length > 0) {
+      didFitRef.current = true;
+      map.fitBounds(L.latLngBounds(entries.map((e) => [e.lat, e.lng] as [number, number])), {
+        padding: [40, 40],
+        maxZoom: 17,
+      });
+    }
+  }, [entries, isAdmin]);
+
+  // Clicking a row in the list flies the map to that marker.
+  useEffect(() => {
+    if (!focusId) return;
+    const map = mapRef.current;
+    const cluster = clusterRef.current;
+    const marker = markersRef.current.get(focusId);
+    if (!map || !cluster || !marker) return;
+    map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 17), { duration: 0.6 });
+    cluster.zoomToShowLayer(marker, () => marker.openPopup());
+  }, [focusId]);
+
+  return <div ref={hostRef} className={`map-host${placing ? " map-host--placing" : ""}`} />;
+}
+
+function popupHtml(e: Entry, isAdmin: boolean): string {
+  const when = new Date(e.takenAt).toLocaleString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+  return `
+    <div class="popup">
+      ${e.photoUrl ? `<a href="${esc(e.photoUrl)}" target="_blank" rel="noreferrer"><img src="${esc(e.thumbUrl ?? e.photoUrl)}" alt="" /></a>` : ""}
+      <div class="popup-when">${esc(when)}</div>
+      <div class="popup-meta">
+        ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}
+        ${e.source === "manual" ? ' · <span title="Пин поставлен вручную">вручную</span>' : ""}
+      </div>
+      ${e.note ? `<div class="popup-note">${esc(e.note)}</div>` : ""}
+      ${isAdmin ? '<button data-del class="popup-del">Удалить</button>' : ""}
+    </div>`;
+}
