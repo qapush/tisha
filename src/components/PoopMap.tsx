@@ -157,13 +157,33 @@ export default function PoopMap({
     const onChange = () => {
       const fs = document.fullscreenElement === wrapRef.current;
       setIsFullscreen(fs);
-      setTimeout(() => mapRef.current?.invalidateSize(), 50);
     };
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  useEffect(() => {
+    setTimeout(() => mapRef.current?.invalidateSize(), 50);
+  }, [isFullscreen]);
+
+  // iPhone Safari never implemented the Fullscreen API for plain elements
+  // (only iPadOS did), so requestFullscreen() there is a silent no-op. Fall
+  // back to a CSS-only "fake fullscreen" and lock body scroll ourselves —
+  // real fullscreen already suppresses that for us.
+  useEffect(() => {
+    if (!isFullscreen || document.fullscreenElement) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isFullscreen]);
+
   const toggleFullscreen = () => {
+    if (!document.fullscreenEnabled) {
+      setIsFullscreen((v) => !v);
+      return;
+    }
     if (document.fullscreenElement) {
       document.exitFullscreen();
     } else {
@@ -172,7 +192,7 @@ export default function PoopMap({
   };
 
   return (
-    <div ref={wrapRef} className="map-wrap">
+    <div ref={wrapRef} className={`map-wrap${isFullscreen ? " map-wrap--fullscreen" : ""}`}>
       <div ref={hostRef} className={`map-host${placing ? " map-host--placing" : ""}`} />
       <button
         type="button"

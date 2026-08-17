@@ -237,12 +237,28 @@ body {
   position: relative;
 }
 
-.map-wrap:fullscreen {
+/* Real Fullscreen API (desktop, Android, iPadOS) and the iPhone Safari
+   fallback (no Fullscreen API for plain elements) both land here so the
+   slider stays pinned at the bottom instead of scrolling off-screen. */
+.map-wrap:fullscreen,
+.map-wrap.map-wrap--fullscreen:not(:fullscreen) {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
   background: var(--bg);
 }
 
-.map-wrap:fullscreen .map-host {
-  height: 100vh;
+.map-wrap.map-wrap--fullscreen:not(:fullscreen) {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+.map-wrap:fullscreen .map-host,
+.map-wrap.map-wrap--fullscreen:not(:fullscreen) .map-host {
+  flex: 1;
+  min-height: 0;
+  height: auto;
   border-radius: 0;
   border: none;
 }
