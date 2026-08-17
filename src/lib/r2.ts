@@ -62,6 +62,21 @@ export async function photoUrl(key: string, expiresIn = 3600): Promise<string> {
   return signed.url;
 }
 
+/** Direct server-side PUT — used where the server already has the bytes in
+ * hand (e.g. the Telegram bot pipeline), so a presigned browser upload would
+ * just be an extra round trip. */
+export async function putObject(key: string, body: Buffer, contentType: string): Promise<void> {
+  const res = await client().fetch(objectUrl(key), {
+    method: "PUT",
+    // Node's fetch accepts a Buffer/Uint8Array body fine at runtime; the
+    // mismatch here is only TS's dom-lib BodyInit type being stricter than
+    // that.
+    body: body as unknown as BodyInit,
+    headers: { "Content-Type": contentType },
+  });
+  if (!res.ok) throw new Error(`R2 put failed for ${key}: ${res.status}`);
+}
+
 export async function deleteObject(key: string): Promise<void> {
   const res = await client().fetch(objectUrl(key), { method: "DELETE" });
   // R2 returns 204 for a successful delete and 404 if it was already gone.

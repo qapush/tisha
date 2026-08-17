@@ -92,6 +92,30 @@ git push origin main
 На Vercel: Import Project → выбери репозиторий → в **Environment Variables** скопируй все
 переменные из `.env.local`. Не забудь потом добавить боевой домен в CORS-политику R2.
 
+### 5. Telegram-бот (опционально)
+
+На Android 10+ браузер, читающий фото через системный пикер, получает копию с обрезанным
+GPS (Scoped Storage, `ACCESS_MEDIA_LOCATION`) — веб-страница это разрешение получить не
+может. Обход: слать фото боту в Telegram **именно как файл** (скрепка → «Файл»/«Документ»,
+не «Фото» — иначе Telegram сам пережмёт и сотрёт EXIF). Бот доливает то же самое фото в ту
+же базу и тот же бакет, без обычного веб-пайплайна.
+
+1. У [@BotFather](https://t.me/BotFather) → `/newbot` → получи токен.
+2. Узнай свой числовой Telegram ID (например, у [@userinfobot](https://t.me/userinfobot)).
+3. Впиши `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USER_ID`, `TELEGRAM_WEBHOOK_SECRET`
+   (`TELEGRAM_WEBHOOK_SECRET` — любая случайная строка, придумай сам) в переменные окружения
+   на Vercel и задеплой.
+4. Зарегистрируй webhook на боевом домене (один раз):
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://ТВОЙ-ДОМЕН.vercel.app/api/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+```
+
+Дальше просто шли фото боту как файл — он ответит «Добавлено ✅» или подскажет, что не так.
+Фото без GPS бот не примет (в схеме координаты обязательны) — такие по-прежнему через сайт,
+с ручной простановкой точки. HEIC от бота тоже может не завестись, если серверная сборка
+`sharp` без поддержки HEIF — тогда тоже через сайт.
+
 ---
 
 ## Переменные окружения
@@ -105,6 +129,9 @@ git push origin main
 | `R2_SECRET_ACCESS_KEY` | да | Из R2 API token |
 | `R2_PUBLIC_BASE_URL` | нет | Публичный домен бакета. Пусто = приватный бакет + подписанные ссылки |
 | `ADMIN_PASSWORD` | да | Пароль на загрузку. Смена разлогинивает все сессии |
+| `TELEGRAM_BOT_TOKEN` | нет | Токен бота от @BotFather — включает загрузку через Telegram |
+| `TELEGRAM_ALLOWED_USER_ID` | нет | Твой числовой Telegram ID. Бот отвечает только ему |
+| `TELEGRAM_WEBHOOK_SECRET` | нет | Случайная строка, проверяется в заголовке от Telegram |
 
 ---
 
