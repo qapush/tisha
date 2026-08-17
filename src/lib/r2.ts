@@ -68,13 +68,13 @@ export async function photoUrl(key: string, expiresIn = 3600): Promise<string> {
 export async function putObject(key: string, body: Buffer, contentType: string): Promise<void> {
   const res = await client().fetch(objectUrl(key), {
     method: "PUT",
-    // Node's fetch accepts a Buffer/Uint8Array body fine at runtime; the
-    // mismatch here is only TS's dom-lib BodyInit type being stricter than
-    // that.
-    body: body as unknown as BodyInit,
+    // A raw Buffer body sent no Content-Length in Vercel's runtime, and R2
+    // rejects that with 411. Blob has a known .size, which fetch reliably
+    // turns into Content-Length for us.
+    body: new Blob([body] as BlobPart[], { type: contentType }),
     headers: { "Content-Type": contentType },
   });
-  if (!res.ok) throw new Error(`R2 put failed for ${key}: ${res.status}`);
+  if (!res.ok) throw new Error(`R2 put failed for ${key}: ${res.status} ${await res.text().catch(() => "")}`);
 }
 
 export async function deleteObject(key: string): Promise<void> {
