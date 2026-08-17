@@ -4,9 +4,23 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "./globals.css";
 
+const siteUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Карта Тиши",
-  description: "Где гулял и что оставил",
+  description: "Где гуляла и что оставила",
+  openGraph: {
+    title: "Карта Тиши",
+    description: "Где гуляла и что оставила",
+    images: ["/preview.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Карта Тиши",
+    description: "Где гуляла и что оставила",
+    images: ["/preview.jpg"],
+  },
   // Google Translate rewrites text nodes/attributes in-place before React
   // hydrates, which corrupts the tree and throws a hydration mismatch —
   // opt out everywhere it's willing to listen.
