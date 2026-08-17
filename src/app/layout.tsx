@@ -4,7 +4,12 @@ import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "./globals.css";
 
-const siteUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+// VERCEL_URL points at the unique per-deployment host, which is behind Vercel's
+// SSO wall and unreachable by link-preview crawlers (Facebook, Telegram, ...).
+// The stable production domain is what those crawlers need to fetch og:image from.
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
