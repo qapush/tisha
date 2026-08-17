@@ -118,29 +118,6 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
     }
   }, [entries]);
 
-  // Landed here via the OS "Share" sheet (see public/sw.js) — the shared
-  // photos are waiting in Cache Storage, never having touched a picker that
-  // strips GPS from EXIF. Pull them out and run them through the exact same
-  // pipeline as a manual file pick.
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("share") !== "1") return;
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete("share");
-    window.history.replaceState({}, "", url);
-
-    (async () => {
-      const { consumeSharedFiles } = await import("@/lib/shareTarget");
-      const files = await consumeSharedFiles();
-      if (files.length === 0) return;
-      if (!isAdmin) {
-        alert("Фото пришли через «Поделиться», но нужно сначала войти в админку — попробуй ещё раз после входа.");
-        return;
-      }
-      handleFiles(files);
-    })();
-  }, [isAdmin, handleFiles]);
-
   const handlePick = useCallback(
     (lat: number, lng: number) => {
       if (!placingId) return;
