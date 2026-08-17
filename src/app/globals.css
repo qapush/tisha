@@ -325,6 +325,11 @@ body {
 
 .map-date-slider-input {
   flex: 1;
+  /* Fixed height so the thumb's -webkit margin-top hack below (tuned for a
+     6px track) lines up the same everywhere — iOS Safari gives range inputs
+     a taller default box than desktop browsers, which otherwise pushes the
+     track (and the thumb centered on it) down. */
+  height: 28px;
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
