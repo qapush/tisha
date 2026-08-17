@@ -62,16 +62,24 @@ export async function photoUrl(key: string, expiresIn = 3600): Promise<string> {
   return signed.url;
 }
 
-/** Direct server-side PUT — used where the server already has the bytes in
- * hand (e.g. the Telegram bot pipeline), so a presigned browser upload would
- * just be an extra round trip. */
+/**
+ * Direct server-side PUT — used where the server already has the bytes in
+ * hand (e.g. the Telegram bot pipeline).
+ *
+ * Deliberately NOT `client().fetch()`: aws4fetch signs by building a
+ * `Request` object and then calling `fetch(thatRequest)` — re-fetching an
+ * already-constructed Request loses the body's known length in this
+ * runtime, and R2 rejects the resulting request with 411/MissingContentLength
+ * no matter whether the body was a Buffer or a Blob. Reusing the presigned
+ * URL for a single direct `fetch(url, init)` call sidesteps that: it's the
+ * exact same shape as the browser's upload (see lib/upload.ts), which has
+ * always worked fine.
+ */
 export async function putObject(key: string, body: Buffer, contentType: string): Promise<void> {
-  const res = await client().fetch(objectUrl(key), {
+  const url = await signPutUrl(key);
+  const res = await fetch(url, {
     method: "PUT",
-    // A raw Buffer body sent no Content-Length in Vercel's runtime, and R2
-    // rejects that with 411. Blob has a known .size, which fetch reliably
-    // turns into Content-Length for us.
-    body: new Blob([body] as BlobPart[], { type: contentType }),
+    body: body as unknown as BodyInit,
     headers: { "Content-Type": contentType },
   });
   if (!res.ok) throw new Error(`R2 put failed for ${key}: ${res.status} ${await res.text().catch(() => "")}`);
