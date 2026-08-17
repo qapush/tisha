@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Entry } from "@/lib/types";
 
 type Props = {
@@ -36,6 +36,30 @@ export default function PoopMap({
   onPickRef.current = onPick;
   const placingRef = useRef(placing);
   placingRef.current = placing;
+
+  // Oldest-first — the slider below scrubs through this order by count.
+  const sortedEntries = useMemo(
+    () => [...entries].sort((a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime()),
+    [entries],
+  );
+  const [visibleCount, setVisibleCount] = useState(0);
+  // Default stays pinned to "show everything" until the user actually drags
+  // the slider — after that, clamp instead of yanking it back to max.
+  const userMovedSliderRef = useRef(false);
+  useEffect(() => {
+    setVisibleCount((c) =>
+      userMovedSliderRef.current
+        ? Math.min(Math.max(c, 1), Math.max(sortedEntries.length, 1))
+        : sortedEntries.length,
+    );
+  }, [sortedEntries.length]);
+  // Clamp inline too — entries can change between a render and the effect
+  // above catching up (e.g. a delete), so visibleCount may briefly be stale.
+  const clampedVisibleCount = Math.min(
+    Math.max(visibleCount, sortedEntries.length > 0 ? 1 : 0),
+    sortedEntries.length,
+  );
+  const visibleEntries = sortedEntries.slice(0, clampedVisibleCount);
 
   // Leaflet touches `window` at import time, so it can only load in the browser.
   useEffect(() => {
@@ -93,7 +117,7 @@ export default function PoopMap({
       popupAnchor: [0, -14],
     });
 
-    for (const e of entries) {
+    for (const e of visibleEntries) {
       const marker = L.marker([e.lat, e.lng], { icon });
       marker.bindPopup(() => popupHtml(e, isAdmin), { minWidth: 200 });
       marker.on("popupopen", (ev) => {
@@ -115,7 +139,7 @@ export default function PoopMap({
         maxZoom: 17,
       });
     }
-  }, [entries, isAdmin]);
+  }, [visibleEntries, entries, isAdmin]);
 
   // Clicking a row in the list flies the map to that marker.
   useEffect(() => {
@@ -167,8 +191,33 @@ export default function PoopMap({
           </svg>
         )}
       </button>
+
+      {sortedEntries.length > 1 && (
+        <div className="map-date-slider">
+          <input
+            type="range"
+            className="map-date-slider-input"
+            min={1}
+            max={sortedEntries.length}
+            step={1}
+            value={clampedVisibleCount}
+            onChange={(ev) => {
+              userMovedSliderRef.current = true;
+              setVisibleCount(Number(ev.target.value));
+            }}
+            aria-label="Срез по дате"
+          />
+          <div className="map-date-slider-label">
+            {shortDate(sortedEntries[clampedVisibleCount - 1].takenAt)} · {clampedVisibleCount}/{sortedEntries.length}
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function popupHtml(e: Entry, isAdmin: boolean): string {

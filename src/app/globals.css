@@ -287,6 +287,30 @@ body {
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
 }
 
+.map-date-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.map-date-slider-input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.map-date-slider-label {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .poop-pin-wrap {
   background: none;
   border: none;
