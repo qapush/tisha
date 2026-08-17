@@ -336,9 +336,9 @@ body {
   cursor: pointer;
 }
 
-/* Thumb is a poop emoji rendered into an SVG data URI — plain `content` isn't
-   respected on ::-webkit-slider-thumb / ::-moz-range-thumb since they aren't
-   generated-content pseudo-elements. */
+/* Thumb is a caterpillar emoji rendered into an SVG data URI — plain `content`
+   isn't respected on ::-webkit-slider-thumb / ::-moz-range-thumb since they
+   aren't generated-content pseudo-elements. */
 .map-date-slider-input::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 3px;
@@ -351,7 +351,7 @@ body {
   height: 28px;
   margin-top: -11px;
   border: none;
-  background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHRleHQgeD0iMTYiIHk9IjI0IiBmb250LXNpemU9IjI0IiBmb250LWZhbWlseT0iU2Vnb2UgVUkgRW1vamksIE5vdG8gQ29sb3IgRW1vamksIEFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5KpPC90ZXh0Pjwvc3ZnPg==")
+  background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHRleHQgeD0iMTYiIHk9IjI0IiBmb250LXNpemU9IjI0IiBmb250LWZhbWlseT0iU2Vnb2UgVUkgRW1vamksIE5vdG8gQ29sb3IgRW1vamksIEFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5CbPC90ZXh0Pjwvc3ZnPg==")
     center / contain no-repeat;
 }
 
@@ -365,7 +365,7 @@ body {
   width: 28px;
   height: 28px;
   border: none;
-  background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHRleHQgeD0iMTYiIHk9IjI0IiBmb250LXNpemU9IjI0IiBmb250LWZhbWlseT0iU2Vnb2UgVUkgRW1vamksIE5vdG8gQ29sb3IgRW1vamksIEFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5KpPC90ZXh0Pjwvc3ZnPg==")
+  background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHRleHQgeD0iMTYiIHk9IjI0IiBmb250LXNpemU9IjI0IiBmb250LWZhbWlseT0iU2Vnb2UgVUkgRW1vamksIE5vdG8gQ29sb3IgRW1vamksIEFwcGxlIENvbG9yIEVtb2ppLCBzYW5zLXNlcmlmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5CbPC90ZXh0Pjwvc3ZnPg==")
     center / contain no-repeat;
 }
 
