@@ -316,7 +316,43 @@ body {
 
 .map-date-slider-input {
   flex: 1;
-  accent-color: var(--accent);
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Thumb is a poop emoji rendered into an SVG data URI — plain `content` isn't
+   respected on ::-webkit-slider-thumb / ::-moz-range-thumb since they aren't
+   generated-content pseudo-elements. */
+.map-date-slider-input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.map-date-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -11px;
+  border: none;
+  background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHRleHQgeD0iMTYiIHk9IjI0IiBmb250LXNpemU9IjI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5KpPC90ZXh0Pjwvc3ZnPg==")
+    center / contain no-repeat;
+}
+
+.map-date-slider-input::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.map-date-slider-input::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHRleHQgeD0iMTYiIHk9IjI0IiBmb250LXNpemU9IjI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5KpPC90ZXh0Pjwvc3ZnPg==")
+    center / contain no-repeat;
 }
 
 .map-date-slider-label {
