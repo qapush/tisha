@@ -28,9 +28,11 @@ export async function GET() {
 
     return Response.json(
       { entries },
-      // Presigned URLs live an hour; caching the payload for five minutes keeps
-      // them comfortably fresh while sparing Neon a wake-up on every reload.
-      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
+      // Short edge cache spares Neon a wake-up on rapid repeat visits without
+      // leaving a freshly-uploaded photo invisible for minutes — a client that
+      // just wrote an entry busts this with a `?t=` query param instead of
+      // waiting it out (see refresh() in App.tsx).
+      { headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=120" } },
     );
   } catch (err) {
     console.error("GET /api/entries failed", err);

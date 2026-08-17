@@ -26,9 +26,14 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
   const [busy, setBusy] = useState(false);
   const objectUrls = useRef<Set<string>>(new Set());
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (bustCache = false) => {
     try {
-      const res = await fetch("/api/entries", { cache: "no-store" });
+      // /api/entries is cached at the edge (Vercel CDN) for a bit to spare Neon
+      // a wake-up on every visitor. `cache: "no-store"` only skips the *browser's*
+      // cache — it does nothing about the edge — so right after we ourselves
+      // just wrote a new entry, add a query param to force a real cache miss.
+      const url = bustCache ? `/api/entries?t=${Date.now()}` : "/api/entries";
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error();
       const { entries } = await res.json();
       setEntries(entries);
@@ -161,7 +166,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
     }
 
     setBusy(false);
-    if (saved > 0) await refresh();
+    if (saved > 0) await refresh(true);
     if (dupes > 0) alert(`${dupes} фото пропущено — такие записи уже есть.`);
   }, [pending, refresh]);
 
