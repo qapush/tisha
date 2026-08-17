@@ -7,6 +7,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Карта Тиши",
   description: "Где гулял и что оставил",
+  // Google Translate rewrites text nodes/attributes in-place before React
+  // hydrates, which corrupts the tree and throws a hydration mismatch —
+  // opt out everywhere it's willing to listen.
+  other: { google: "notranslate" },
 };
 
 export const viewport: Viewport = {
@@ -18,8 +22,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
-      <body>{children}</body>
+    <html lang="ru" translate="no">
+      <body className="notranslate">{children}</body>
     </html>
   );
 }
