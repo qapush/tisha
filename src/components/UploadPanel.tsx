@@ -105,6 +105,9 @@ export default function UploadPanel({
                     <>
                       {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
                       {p.source === "manual" && <span className="tag">вручную</span>}
+                      {p.status === "duplicate" && (
+                        <span className="tag tag--dup">такое фото уже есть</span>
+                      )}
                     </>
                   ) : placingId === p.id ? (
                     <span className="placing">кликни на карте…</span>

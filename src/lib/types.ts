@@ -20,6 +20,6 @@ export type Pending = {
   lat: number | null;
   lng: number | null;
   source: "exif" | "manual";
-  status: "ready" | "uploading" | "error";
+  status: "ready" | "uploading" | "error" | "duplicate";
   error?: string;
 };

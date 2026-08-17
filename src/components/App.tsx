@@ -7,6 +7,7 @@ import UploadPanel from "./UploadPanel";
 import LoginBar from "./LoginBar";
 import type { Entry, Pending } from "@/lib/types";
 import { uploadEntry } from "@/lib/upload";
+import { sameSpot } from "@/lib/dedupe";
 
 // Leaflet has no SSR story at all — keep it out of the server bundle.
 const PoopMap = dynamic(() => import("./PoopMap"), {
@@ -81,21 +82,27 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
             ),
           ]);
           objectUrls.current.add(prepared.previewUrl);
-          setPending((prev) => [
-            ...prev,
-            {
-              // crypto.randomUUID() needs a secure context — unavailable when
-              // testing from a phone over plain http://<lan-ip>, so don't rely on it.
-              id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              prepared,
-              previewUrl: prepared.previewUrl,
-              takenAt: prepared.takenAt,
-              lat: prepared.lat,
-              lng: prepared.lng,
-              source: "exif",
-              status: "ready",
-            },
-          ]);
+          setPending((prev) => {
+            const candidate = { takenAt: prepared.takenAt, lat: prepared.lat, lng: prepared.lng };
+            const isDuplicate =
+              entries.some((e) => sameSpot(candidate, e)) ||
+              prev.some((p) => p.status !== "error" && sameSpot(candidate, p));
+            return [
+              ...prev,
+              {
+                // crypto.randomUUID() needs a secure context — unavailable when
+                // testing from a phone over plain http://<lan-ip>, so don't rely on it.
+                id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                prepared,
+                previewUrl: prepared.previewUrl,
+                takenAt: prepared.takenAt,
+                lat: prepared.lat,
+                lng: prepared.lng,
+                source: "exif",
+                status: isDuplicate ? "duplicate" : "ready",
+              },
+            ];
+          });
         } catch (err) {
           console.error("prepare failed", file.name, err);
           alert(`Не смог прочитать ${file.name}. Формат не поддерживается?`);
@@ -104,17 +111,27 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [entries]);
 
   const handlePick = useCallback(
     (lat: number, lng: number) => {
       if (!placingId) return;
-      setPending((prev) =>
-        prev.map((p) => (p.id === placingId ? { ...p, lat, lng, source: "manual" } : p)),
-      );
+      setPending((prev) => {
+        const placed = prev.find((p) => p.id === placingId);
+        if (!placed) return prev;
+        const candidate = { takenAt: placed.takenAt, lat, lng };
+        const isDuplicate =
+          entries.some((e) => sameSpot(candidate, e)) ||
+          prev.some((p) => p.id !== placingId && p.status !== "error" && sameSpot(candidate, p));
+        return prev.map((p) =>
+          p.id === placingId
+            ? { ...p, lat, lng, source: "manual", status: isDuplicate ? "duplicate" : "ready" }
+            : p,
+        );
+      });
       setPlacingId(null);
     },
-    [placingId],
+    [placingId, entries],
   );
 
   const handleSaveAll = useCallback(async () => {
