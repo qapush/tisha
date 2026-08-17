@@ -49,33 +49,61 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
     return () => urls.forEach((u) => URL.revokeObjectURL(u));
   }, []);
 
-  const handleFiles = useCallback(async (files: FileList) => {
+  // A promise rejecting outside any try/catch (e.g. inside a callback React
+  // itself doesn't await) otherwise fails completely silently — the UI just
+  // sits there stuck. Surface it instead of leaving "nothing happens".
+  useEffect(() => {
+    const onRejection = (e: PromiseRejectionEvent) => {
+      console.error("unhandled rejection", e.reason);
+      setBusy(false);
+      alert(`Что-то сломалось: ${e.reason instanceof Error ? e.reason.message : String(e.reason)}`);
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => window.removeEventListener("unhandledrejection", onRejection);
+  }, []);
+
+  const handleFiles = useCallback(async (files: File[]) => {
     setBusy(true);
-    const { prepare } = await import("@/lib/image");
-    for (const file of Array.from(files)) {
-      const id = crypto.randomUUID();
-      try {
-        const prepared = await prepare(file);
-        objectUrls.current.add(prepared.previewUrl);
-        setPending((prev) => [
-          ...prev,
-          {
-            id,
-            prepared,
-            previewUrl: prepared.previewUrl,
-            takenAt: prepared.takenAt,
-            lat: prepared.lat,
-            lng: prepared.lng,
-            source: "exif",
-            status: "ready",
-          },
-        ]);
-      } catch (err) {
-        console.error("prepare failed", file.name, err);
-        alert(`Не смог прочитать ${file.name}. Формат не поддерживается?`);
+    try {
+      const { prepare } = await import("@/lib/image");
+      for (const file of files) {
+        try {
+          // Some HEIC conversions/decodes can hang instead of rejecting (seen
+          // with certain browser/codec combos) — without this the button just
+          // stays stuck forever with zero feedback.
+          const prepared = await Promise.race([
+            prepare(file),
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error(`обработка "${file.name}" зависла (>20с)`)),
+                20_000,
+              ),
+            ),
+          ]);
+          objectUrls.current.add(prepared.previewUrl);
+          setPending((prev) => [
+            ...prev,
+            {
+              // crypto.randomUUID() needs a secure context — unavailable when
+              // testing from a phone over plain http://<lan-ip>, so don't rely on it.
+              id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              prepared,
+              previewUrl: prepared.previewUrl,
+              takenAt: prepared.takenAt,
+              lat: prepared.lat,
+              lng: prepared.lng,
+              source: "exif",
+              status: "ready",
+            },
+          ]);
+        } catch (err) {
+          console.error("prepare failed", file.name, err);
+          alert(`Не смог прочитать ${file.name}. Формат не поддерживается?`);
+        }
       }
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }, []);
 
   const handlePick = useCallback(

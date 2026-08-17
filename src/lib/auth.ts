@@ -41,10 +41,16 @@ export function checkPassword(input: string): boolean {
 export async function isAdmin(): Promise<boolean> {
   const jar = await cookies();
   const got = jar.get(ADMIN_COOKIE)?.value;
-  if (!got) return false;
+  if (!got) {
+    console.log("[auth] no admin cookie on request");
+    return false;
+  }
   try {
-    return constantTimeEqual(got, await makeToken());
-  } catch {
+    const ok = constantTimeEqual(got, await makeToken());
+    console.log("[auth] admin cookie present, valid:", ok);
+    return ok;
+  } catch (err) {
+    console.log("[auth] admin cookie check failed:", err);
     return false;
   }
 }
@@ -52,5 +58,11 @@ export async function isAdmin(): Promise<boolean> {
 /** Throws a Response-shaped error for API routes that must be admin-only. */
 export async function requireAdmin(): Promise<Response | null> {
   if (await isAdmin()) return null;
+  // The most common way to hit this: a session cookie set while logged in on
+  // one origin (e.g. localhost:3000) doesn't carry over to another
+  // (e.g. 192.168.x.x:3000 from a phone) — cookies are scoped per-origin, so
+  // that's a fresh, logged-out session even though the browser looks logged
+  // in on the other tab.
+  console.log("[auth] requireAdmin rejected request — not authenticated on this origin");
   return Response.json({ error: "unauthorized" }, { status: 401 });
 }

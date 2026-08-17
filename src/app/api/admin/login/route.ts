@@ -12,6 +12,7 @@ export async function POST(req: Request) {
   }
 
   if (!password || !checkPassword(password)) {
+    console.log("[login] wrong password");
     // Small delay so the endpoint is not a fast password oracle.
     await new Promise((r) => setTimeout(r, 400));
     return Response.json({ error: "wrong password" }, { status: 401 });
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
+  console.log("[login] ok, admin cookie set");
 
   return Response.json({ ok: true });
 }
@@ -32,5 +34,6 @@ export async function POST(req: Request) {
 export async function DELETE() {
   const jar = await cookies();
   jar.delete(ADMIN_COOKIE);
+  console.log("[login] logged out, admin cookie cleared");
   return Response.json({ ok: true });
 }

@@ -233,6 +233,20 @@ body {
 
 /* ---------- map ---------- */
 
+.map-wrap {
+  position: relative;
+}
+
+.map-wrap:fullscreen {
+  background: var(--bg);
+}
+
+.map-wrap:fullscreen .map-host {
+  height: 100vh;
+  border-radius: 0;
+  border: none;
+}
+
 .map-host {
   height: 55vh;
   min-height: 320px;
@@ -251,6 +265,26 @@ body {
   display: grid;
   place-items: center;
   color: var(--muted);
+}
+
+.map-fullscreen-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 500;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  cursor: pointer;
+}
+
+.map-fullscreen-btn:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
 }
 
 .poop-pin-wrap {

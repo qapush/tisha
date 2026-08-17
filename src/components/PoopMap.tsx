@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Entry } from "@/lib/types";
 
 type Props = {
@@ -23,9 +23,10 @@ export default function PoopMap({
   onDelete,
   onPick,
 }: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
-  const clusterRef = useRef<import("leaflet").MarkerClusterGroup | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const markersRef = useRef<Map<string, import("leaflet").Marker>>(new Map());
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
   const didFitRef = useRef(false);
@@ -42,7 +43,6 @@ export default function PoopMap({
 
     (async () => {
       const L = (await import("leaflet")).default;
-      await import("leaflet.markercluster");
       if (cancelled || !hostRef.current || mapRef.current) return;
 
       leafletRef.current = L;
@@ -57,12 +57,6 @@ export default function PoopMap({
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(map);
 
-      const cluster = L.markerClusterGroup({
-        maxClusterRadius: 45,
-        showCoverageOnHover: false,
-      });
-      map.addLayer(cluster);
-
       // Read the flag through a ref so the handler is registered once and still
       // sees the current mode.
       map.on("click", (ev: import("leaflet").LeafletMouseEvent) => {
@@ -70,7 +64,6 @@ export default function PoopMap({
       });
 
       mapRef.current = map;
-      clusterRef.current = cluster;
       // Force a redraw once the container has its real height.
       setTimeout(() => map.invalidateSize(), 0);
     })();
@@ -79,7 +72,6 @@ export default function PoopMap({
       cancelled = true;
       mapRef.current?.remove();
       mapRef.current = null;
-      clusterRef.current = null;
       markersRef.current.clear();
     };
   }, []);
@@ -87,11 +79,10 @@ export default function PoopMap({
   // Rebuild markers whenever the data changes.
   useEffect(() => {
     const L = leafletRef.current;
-    const cluster = clusterRef.current;
     const map = mapRef.current;
-    if (!L || !cluster || !map) return;
+    if (!L || !map) return;
 
-    cluster.clearLayers();
+    markersRef.current.forEach((marker) => map.removeLayer(marker));
     markersRef.current.clear();
 
     const icon = L.divIcon({
@@ -111,7 +102,7 @@ export default function PoopMap({
           if (confirm("Удалить эту запись?")) onDeleteRef.current(e.id);
         });
       });
-      cluster.addLayer(marker);
+      marker.addTo(map);
       markersRef.current.set(e.id, marker);
     }
 
@@ -130,14 +121,54 @@ export default function PoopMap({
   useEffect(() => {
     if (!focusId) return;
     const map = mapRef.current;
-    const cluster = clusterRef.current;
     const marker = markersRef.current.get(focusId);
-    if (!map || !cluster || !marker) return;
+    if (!map || !marker) return;
     map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 17), { duration: 0.6 });
-    cluster.zoomToShowLayer(marker, () => marker.openPopup());
+    marker.openPopup();
   }, [focusId]);
 
-  return <div ref={hostRef} className={`map-host${placing ? " map-host--placing" : ""}`} />;
+  // Leaflet's own size cache goes stale the moment the container jumps in
+  // and out of the fullscreen layout, so nudge it after the transition.
+  useEffect(() => {
+    const onChange = () => {
+      const fs = document.fullscreenElement === wrapRef.current;
+      setIsFullscreen(fs);
+      setTimeout(() => mapRef.current?.invalidateSize(), 50);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      wrapRef.current?.requestFullscreen();
+    }
+  };
+
+  return (
+    <div ref={wrapRef} className="map-wrap">
+      <div ref={hostRef} className={`map-host${placing ? " map-host--placing" : ""}`} />
+      <button
+        type="button"
+        className="map-fullscreen-btn"
+        onClick={toggleFullscreen}
+        title={isFullscreen ? "Свернуть карту" : "Развернуть карту"}
+        aria-label={isFullscreen ? "Свернуть карту" : "Развернуть карту"}
+      >
+        {isFullscreen ? (
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 3v4a2 2 0 0 1-2 2H3M15 3v4a2 2 0 0 0 2 2h4M9 21v-4a2 2 0 0 0-2-2H3M15 21v-4a2 2 0 0 1 2-2h4" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
+          </svg>
+        )}
+      </button>
+    </div>
+  );
 }
 
 function popupHtml(e: Entry, isAdmin: boolean): string {

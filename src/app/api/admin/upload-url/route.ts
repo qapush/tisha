@@ -12,11 +12,12 @@ export async function POST(req: Request) {
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  let takenAt: string;
+  let takenAt: string | undefined;
   try {
     ({ takenAt } = await req.json());
     if (!takenAt || Number.isNaN(Date.parse(takenAt))) throw new Error("bad takenAt");
   } catch {
+    console.log("[POST /api/admin/upload-url] Invalid takenAt:", { takenAt });
     return Response.json({ error: "takenAt (ISO date) required" }, { status: 400 });
   }
 
@@ -30,14 +31,22 @@ export async function POST(req: Request) {
   const photoKey = `photos/${yyyy}/${mm}/${id}.webp`;
   const thumbKey = `thumbs/${yyyy}/${mm}/${id}.webp`;
 
+  console.log("[POST /api/admin/upload-url] Generating signed URLs:", {
+    takenAt,
+    photoKey,
+    thumbKey,
+    uploadId: id,
+  });
+
   try {
     const [photoUploadUrl, thumbUploadUrl] = await Promise.all([
       signPutUrl(photoKey),
       signPutUrl(thumbKey),
     ]);
+    console.log("[POST /api/admin/upload-url] Successfully generated upload URLs");
     return Response.json({ photoKey, thumbKey, photoUploadUrl, thumbUploadUrl });
   } catch (err) {
-    console.error("presign failed", err);
+    console.error("[POST /api/admin/upload-url] Presign failed:", { error: err, takenAt });
     return Response.json({ error: "could not sign upload" }, { status: 500 });
   }
 }

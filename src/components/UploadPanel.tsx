@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { Pending } from "@/lib/types";
 
 type Props = {
   pending: Pending[];
   busy: boolean;
   placingId: string | null;
-  onFiles: (files: FileList) => void;
+  onFiles: (files: File[]) => void;
   onStartPlacing: (id: string) => void;
   onDrop: (id: string) => void;
   onSaveAll: () => void;
@@ -33,24 +33,48 @@ export default function UploadPanel({
   const ready = pending.filter((p) => p.lat !== null && p.status === "ready");
   const needPin = pending.filter((p) => p.lat === null && p.status === "ready");
 
+  // React's synthetic onChange was confirmed (via manual addEventListener in
+  // devtools) to NOT fire on this input, even though the native DOM 'change'
+  // event does. Bind natively instead of trusting JSX onChange.
+  const onFilesRef = useRef(onFiles);
+  onFilesRef.current = onFiles;
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    const handler = (e: Event) => {
+      const input = e.target as HTMLInputElement;
+      // Copy out of the FileList (which some browsers back with the input's
+      // own live selection) BEFORE resetting .value below — otherwise, once
+      // the async onFiles callback comes back from its first await, the reset
+      // has already emptied the list out from under it.
+      const picked = input.files ? Array.from(input.files) : [];
+      input.value = "";
+      if (picked.length) onFilesRef.current(picked);
+    };
+    el.addEventListener("change", handler);
+    return () => el.removeEventListener("change", handler);
+  }, []);
+
   return (
     <div className="panel">
       <div className="panel-head">
         <button className="btn btn--primary" onClick={() => inputRef.current?.click()} disabled={busy}>
-          Выбрать фото
+          {busy ? "Обрабатываю…" : "Выбрать фото"}
         </button>
         <input
           ref={inputRef}
           type="file"
-          /* Deliberately NOT listing image/heic here: on Safari 17+ that makes
-             iOS transcode files on the way in. Plain image/* keeps originals. */
-          accept="image/*"
+          /* No accept filter at all — deliberately. Chrome on Android reads
+             even an extension-only accept (".jpg" etc.) as "this is an image
+             field" and routes it through the system Photo Picker, which
+             strips GPS out of EXIF before handing the file over; only its
+             plain document/file picker leaves the file untouched. Listing
+             "image/heic" specifically has its own separate problem — it
+             makes Safari 17+ transcode HEIC on the way in — so it's not an
+             option either. No accept attribute is the one thing that reliably
+             avoids both. */
           multiple
           hidden
-          onChange={(e) => {
-            if (e.target.files?.length) onFiles(e.target.files);
-            e.target.value = "";
-          }}
         />
         {pending.length > 0 && (
           <button className="btn" onClick={onSaveAll} disabled={busy || ready.length === 0}>
@@ -62,8 +86,8 @@ export default function UploadPanel({
       {needPin.length > 0 && (
         <p className="hint hint--warn">
           У {needPin.length === 1 ? "одного фото" : `${needPin.length} фото`} нет координат в EXIF —
-          iPhone их не записал или они потерялись при передаче. Нажми «поставить на карте» и кликни
-          нужное место.
+          устройство их не записало, или геометки потерялись при передаче (частая история для
+          галереи/пикера на Android). Нажми «поставить на карте» и кликни нужное место.
         </p>
       )}
 

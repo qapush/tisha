@@ -25,14 +25,26 @@ export async function POST(req: Request) {
     return Response.json({ error: "bad json" }, { status: 400 });
   }
 
+  console.log("[POST /api/admin/entries] Incoming request:", {
+    takenAt: b.takenAt,
+    lat: b.lat,
+    lng: b.lng,
+    source: b.source,
+    photoKey: b.photoKey,
+    thumbKey: b.thumbKey,
+  });
+
   const { takenAt, lat, lng } = b;
   if (!takenAt || Number.isNaN(Date.parse(takenAt))) {
+    console.log("[POST /api/admin/entries] Validation failed: bad takenAt", { takenAt });
     return Response.json({ error: "takenAt must be an ISO date" }, { status: 400 });
   }
   if (typeof lat !== "number" || lat < -90 || lat > 90) {
+    console.log("[POST /api/admin/entries] Validation failed: lat out of range", { lat });
     return Response.json({ error: "lat out of range" }, { status: 400 });
   }
   if (typeof lng !== "number" || lng < -180 || lng > 180) {
+    console.log("[POST /api/admin/entries] Validation failed: lng out of range", { lng });
     return Response.json({ error: "lng out of range" }, { status: 400 });
   }
 
@@ -40,6 +52,15 @@ export async function POST(req: Request) {
 
   try {
     const sql = db();
+    console.log("[POST /api/admin/entries] Inserting into DB:", {
+      takenAt,
+      lat,
+      lng,
+      source,
+      photoKey: b.photoKey,
+      thumbKey: b.thumbKey,
+    });
+
     const rows = (await sql`
       insert into entries (taken_at, lat, lng, source, photo_key, thumb_key, note)
       values (${takenAt}, ${lat}, ${lng}, ${source}, ${b.photoKey ?? null},
@@ -50,11 +71,13 @@ export async function POST(req: Request) {
 
     // The dedupe index swallowed it — same second, same spot.
     if (rows.length === 0) {
+      console.log("[POST /api/admin/entries] Duplicate detected (on conflict):", { takenAt, lat, lng });
       return Response.json({ duplicate: true }, { status: 200 });
     }
+    console.log("[POST /api/admin/entries] Created entry:", { id: rows[0].id, takenAt: rows[0].taken_at });
     return Response.json({ entry: rows[0] }, { status: 201 });
   } catch (err) {
-    console.error("POST /api/admin/entries failed", err);
+    console.error("[POST /api/admin/entries] Insert failed:", { error: err, takenAt, lat, lng });
     return Response.json({ error: "insert failed" }, { status: 500 });
   }
 }

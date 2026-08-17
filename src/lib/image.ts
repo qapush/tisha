@@ -1,4 +1,5 @@
 import exifr from "exifr";
+import { extractHeicExifBuffer } from "./heicExif";
 
 export const FULL_MAX_SIDE = 1600;
 export const THUMB_MAX_SIDE = 400;
@@ -75,8 +76,36 @@ async function encode(bitmap: ImageBitmap, maxSide: number, quality: number): Pr
  * canvas drops all EXIF), then produces a downscaled photo and a thumbnail.
  */
 export async function prepare(file: File): Promise<Prepared> {
-  // exifr parses HEIC directly, so this runs before any conversion.
-  const meta = await exifr.parse(file, { tiff: true, exif: true, gps: true }).catch(() => null);
+  // Read into memory once and feed exifr that ArrayBuffer everywhere below,
+  // rather than the File/Blob itself. Blob input routes exifr through its own
+  // FileReader-based chunked reader — a separate, less predictable code path
+  // than parsing bytes already in memory (which is what every plain
+  // Buffer/ArrayBuffer test of this against real photos was actually
+  // exercising, and is the one known to reliably find GPS).
+  const fileBuf = await file.arrayBuffer();
+
+  // exifr parses HEIC directly — but its HEIC sniffer rejects any ftyp box
+  // over 50 bytes, which modern iPhones routinely exceed (HDR gain-map
+  // support adds compatible brands). When that happens exifr throws and we
+  // get nothing, GPS included, so locate the Exif block ourselves first and
+  // hand exifr just that raw TIFF buffer instead — see heicExif.ts for why.
+  let meta: Awaited<ReturnType<typeof exifr.parse>> = null;
+  const isHeic = await looksLikeHeic(file);
+  if (isHeic) {
+    const exifBuf = extractHeicExifBuffer(fileBuf);
+    console.log("[image] heic path:", file.name, "exif block found:", !!exifBuf, "bytes:", exifBuf?.length);
+    if (exifBuf) meta = await exifr.parse(exifBuf, { tiff: true, exif: true, gps: true }).catch((e) => {
+      console.log("[image] exifr.parse on extracted heic buffer threw:", e);
+      return null;
+    });
+  }
+  if (!meta) {
+    meta = await exifr.parse(fileBuf, { tiff: true, exif: true, gps: true }).catch((e) => {
+      console.log("[image] exifr.parse on whole file threw:", e);
+      return null;
+    });
+  }
+  console.log("[image] meta result for", file.name, "isHeic:", isHeic, "latitude:", meta?.latitude, "longitude:", meta?.longitude, "keys:", meta ? Object.keys(meta) : null);
 
   const lat = typeof meta?.latitude === "number" && Number.isFinite(meta.latitude) ? meta.latitude : null;
   const lng = typeof meta?.longitude === "number" && Number.isFinite(meta.longitude) ? meta.longitude : null;
