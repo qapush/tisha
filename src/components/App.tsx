@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import EntryList from "./EntryList";
 import UploadPanel from "./UploadPanel";
@@ -12,7 +12,7 @@ import { sameSpot } from "@/lib/dedupe";
 // Leaflet has no SSR story at all — keep it out of the server bundle.
 const PoopMap = dynamic(() => import("./PoopMap"), {
   ssr: false,
-  loading: () => <div className="map-host map-host--loading">карта загружается…</div>,
+  loading: () => <div className="map-host map-host--loading">loading map…</div>,
 });
 
 export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
@@ -39,7 +39,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
       setEntries(entries);
       setLoadError(null);
     } catch {
-      setLoadError("Не удалось загрузить записи. Обнови страницу.");
+      setLoadError("Couldn't load the entries. Refresh the page.");
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
     const onRejection = (e: PromiseRejectionEvent) => {
       console.error("unhandled rejection", e.reason);
       setBusy(false);
-      alert(`Что-то сломалось: ${e.reason instanceof Error ? e.reason.message : String(e.reason)}`);
+      alert(`Something broke: ${e.reason instanceof Error ? e.reason.message : String(e.reason)}`);
     };
     window.addEventListener("unhandledrejection", onRejection);
     return () => window.removeEventListener("unhandledrejection", onRejection);
@@ -81,7 +81,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
             prepare(file),
             new Promise<never>((_, reject) =>
               setTimeout(
-                () => reject(new Error(`обработка "${file.name}" зависла (>20с)`)),
+                () => reject(new Error(`processing "${file.name}" hung (>20s)`)),
                 20_000,
               ),
             ),
@@ -110,7 +110,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
           });
         } catch (err) {
           console.error("prepare failed", file.name, err);
-          alert(`Не смог прочитать ${file.name}. Формат не поддерживается?`);
+          alert(`Couldn't read ${file.name}. Unsupported format?`);
         }
       }
     } finally {
@@ -158,7 +158,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
         setPending((prev) =>
           prev.map((x) =>
             x.id === p.id
-              ? { ...x, status: "error", error: err instanceof Error ? err.message : "ошибка" }
+              ? { ...x, status: "error", error: err instanceof Error ? err.message : "error" }
               : x,
           ),
         );
@@ -167,7 +167,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
 
     setBusy(false);
     if (saved > 0) await refresh(true);
-    if (dupes > 0) alert(`${dupes} фото пропущено — такие записи уже есть.`);
+    if (dupes > 0) alert(`${dupes} photo(s) skipped — those entries already exist.`);
   }, [pending, refresh]);
 
   const handleDelete = useCallback(async (id: string) => {
@@ -176,7 +176,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
       method: "DELETE",
     });
     if (!res.ok) {
-      alert("Не удалось удалить.");
+      alert("Couldn't delete.");
       await refresh();
     }
   }, [refresh]);
@@ -193,26 +193,17 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
     setPlacingId((cur) => (cur === id ? null : cur));
   }, []);
 
-  const stats = useMemo(() => {
-    if (entries.length === 0) return null;
-    const times = entries.map((e) => new Date(e.takenAt).getTime());
-    const spanDays = Math.max(1, (Math.max(...times) - Math.min(...times)) / 86_400_000);
-    return {
-      total: entries.length,
-      perDay: (entries.length / spanDays).toFixed(1),
-      days: Math.round(spanDays),
-    };
-  }, [entries]);
+  const total = entries.length;
 
   return (
     <div className="app">
       <header className="header">
         <h1>
-          <span aria-hidden>💩</span> Карта Тиши
+          <span aria-hidden>💩</span> Tisha&apos;s Map
         </h1>
-        {stats && (
+        {total > 0 && (
           <p className="stats">
-            {stats.total} записей за {stats.days} дн. · ~{stats.perDay} в день
+            {total} {total === 1 ? "entry" : "entries"}
           </p>
         )}
         <LoginBar isAdmin={isAdmin} onChange={setIsAdmin} />
@@ -232,9 +223,9 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
 
       {placingId && (
         <div className="banner">
-          Кликни на карте, где это произошло.{" "}
+          Click the map where it happened.{" "}
           <button className="link" onClick={() => setPlacingId(null)}>
-            отмена
+            cancel
           </button>
         </div>
       )}
@@ -251,7 +242,7 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
       />
 
       {loading ? (
-        <p className="empty">Загружаю…</p>
+        <p className="empty">Loading…</p>
       ) : (
         <EntryList
           entries={entries}

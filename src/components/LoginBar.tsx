@@ -23,7 +23,7 @@ export default function LoginBar({
           onChange(false);
         }}
       >
-        выйти
+        log out
       </button>
     );
   }
@@ -31,7 +31,7 @@ export default function LoginBar({
   if (!open) {
     return (
       <button className="link login-link" onClick={() => setOpen(true)}>
-        вход
+        log in
       </button>
     );
   }
@@ -54,7 +54,7 @@ export default function LoginBar({
           setPassword("");
           onChange(true);
         } else {
-          setError("Неверный пароль");
+          setError("Wrong password");
         }
       }}
     >
@@ -62,14 +62,14 @@ export default function LoginBar({
         type="password"
         value={password}
         autoFocus
-        placeholder="пароль"
+        placeholder="password"
         onChange={(e) => setPassword(e.target.value)}
       />
       <button className="btn" type="submit" disabled={busy}>
-        ок
+        ok
       </button>
       <button className="link" type="button" onClick={() => setOpen(false)}>
-        отмена
+        cancel
       </button>
       {error && <span className="err">{error}</span>}
     </form>

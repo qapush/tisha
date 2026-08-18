@@ -13,7 +13,7 @@ type Props = {
   onSaveAll: () => void;
 };
 
-const dtFmt = new Intl.DateTimeFormat("ru-RU", {
+const dtFmt = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   month: "short",
   hour: "2-digit",
@@ -59,7 +59,7 @@ export default function UploadPanel({
     <div className="panel">
       <div className="panel-head">
         <button className="btn btn--primary" onClick={() => inputRef.current?.click()} disabled={busy}>
-          {busy ? "Обрабатываю…" : "Выбрать фото"}
+          {busy ? "Processing…" : "Choose photos"}
         </button>
         <input
           ref={inputRef}
@@ -78,16 +78,17 @@ export default function UploadPanel({
         />
         {pending.length > 0 && (
           <button className="btn" onClick={onSaveAll} disabled={busy || ready.length === 0}>
-            {busy ? "Загружаю…" : `Сохранить (${ready.length})`}
+            {busy ? "Uploading…" : `Save (${ready.length})`}
           </button>
         )}
       </div>
 
       {needPin.length > 0 && (
         <p className="hint hint--warn">
-          У {needPin.length === 1 ? "одного фото" : `${needPin.length} фото`} нет координат в EXIF —
-          устройство их не записало, или геометки потерялись при передаче (частая история для
-          галереи/пикера на Android). Нажми «поставить на карте» и кликни нужное место.
+          {needPin.length === 1 ? "1 photo has" : `${needPin.length} photos have`} no GPS in their
+          EXIF — the device didn&apos;t record it, or the geotags were stripped in transit (common
+          with the Android gallery/picker). Tap &laquo;place on the map&raquo; and click the right
+          spot.
         </p>
       )}
 
@@ -104,21 +105,21 @@ export default function UploadPanel({
                   ) : p.lat !== null && p.lng !== null ? (
                     <>
                       {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
-                      {p.source === "manual" && <span className="tag">вручную</span>}
+                      {p.source === "manual" && <span className="tag">manual</span>}
                       {p.status === "duplicate" && (
-                        <span className="tag tag--dup">такое фото уже есть</span>
+                        <span className="tag tag--dup">already added</span>
                       )}
                     </>
                   ) : placingId === p.id ? (
-                    <span className="placing">кликни на карте…</span>
+                    <span className="placing">click the map…</span>
                   ) : (
                     <button className="link" onClick={() => onStartPlacing(p.id)}>
-                      поставить на карте
+                      place on the map
                     </button>
                   )}
                 </div>
               </div>
-              <button className="row-del" title="Убрать" onClick={() => onDrop(p.id)}>
+              <button className="row-del" title="Remove" onClick={() => onDrop(p.id)}>
                 ×
               </button>
             </li>

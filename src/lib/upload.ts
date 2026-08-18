@@ -34,7 +34,7 @@ export async function uploadEntry(
     body: JSON.stringify({ takenAt }),
   });
   if (!signRes.ok) {
-    throw new Error(signRes.status === 401 ? "нужен вход в админку" : "не удалось получить ссылку");
+    throw new Error(signRes.status === 401 ? "admin login required" : "couldn't get an upload URL");
   }
   const { photoKey, thumbKey, photoUploadUrl, thumbUploadUrl } = await signRes.json();
   console.log("[uploadEntry] Got signed URLs:", { photoKey, thumbKey });
@@ -47,7 +47,7 @@ export async function uploadEntry(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ takenAt, lat, lng, source, photoKey, thumbKey }),
   });
-  if (!res.ok) throw new Error("не удалось сохранить запись");
+  if (!res.ok) throw new Error("couldn't save the entry");
 
   const body = await res.json();
   console.log("[uploadEntry] Entry saved:", { duplicate: body.duplicate, entryId: body.entry?.id });

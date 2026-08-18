@@ -9,19 +9,19 @@ type Props = {
   onDelete: (id: string) => void;
 };
 
-const dayFmt = new Intl.DateTimeFormat("ru-RU", {
+const dayFmt = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
   day: "numeric",
   month: "long",
   year: "numeric",
 });
-const timeFmt = new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" });
+const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit" });
 
 export default function EntryList({ entries, isAdmin, onFocus, onDelete }: Props) {
   if (entries.length === 0) {
     return (
       <p className="empty">
-        Пока пусто. {isAdmin ? "Закинь первое фото выше." : "Записей ещё нет."}
+        Nothing yet. {isAdmin ? "Drop the first photo above." : "No entries so far."}
       </p>
     );
   }
@@ -56,16 +56,16 @@ export default function EntryList({ entries, isAdmin, onFocus, onDelete }: Props
                     <span className="row-time">{timeFmt.format(new Date(e.takenAt))}</span>
                     <span className="row-coords">
                       {e.lat.toFixed(5)}, {e.lng.toFixed(5)}
-                      {e.source === "manual" && <span className="tag">вручную</span>}
+                      {e.source === "manual" && <span className="tag">manual</span>}
                     </span>
                   </span>
                 </button>
                 {isAdmin && (
                   <button
                     className="row-del"
-                    title="Удалить"
+                    title="Delete"
                     onClick={() => {
-                      if (confirm("Удалить эту запись?")) onDelete(e.id);
+                      if (confirm("Delete this entry?")) onDelete(e.id);
                     }}
                   >
                     ×

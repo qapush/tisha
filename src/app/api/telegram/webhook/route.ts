@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     if (message.photo) {
       await sendMessage(
         chatId,
-        "Это пришло как «Фото» — Telegram уже сжал его и стёр GPS. Пришли тем же файлом, но через скрепку → «Файл»/«Документ».",
+        "This came in as a “Photo” — Telegram already compressed it and stripped the GPS. Send the same file via the paperclip → “File”/“Document”.",
       );
       return Response.json({ ok: true });
     }
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
     const { file_id, file_name, mime_type } = message.document;
     if (mime_type && !/^image\//.test(mime_type)) {
-      await sendMessage(chatId, "Это не похоже на фото — пропустил.");
+      await sendMessage(chatId, "That doesn't look like a photo — skipped.");
       return Response.json({ ok: true });
     }
 
@@ -70,12 +70,12 @@ export async function POST(req: Request) {
       });
     } catch (err) {
       console.error("[telegram] prepareServer failed", err);
-      await sendMessage(chatId, "Не смог обработать файл (формат не поддерживается ботом) — попробуй через сайт.");
+      await sendMessage(chatId, "Couldn't process the file (format not supported by the bot) — try via the site.");
       return Response.json({ ok: true });
     }
 
     if (prepared.lat === null || prepared.lng === null) {
-      await sendMessage(chatId, "В фото нет GPS-координат — такое можно добавить только через сайт (ставится точка вручную).");
+      await sendMessage(chatId, "The photo has no GPS coordinates — that can only be added via the site (drop the pin manually).");
       return Response.json({ ok: true });
     }
 
@@ -100,14 +100,14 @@ export async function POST(req: Request) {
     `) as Pick<Entry, "id">[];
 
     if (rows.length === 0) {
-      await sendMessage(chatId, "Такая запись уже есть — пропустил.");
+      await sendMessage(chatId, "That entry already exists — skipped.");
     } else {
-      await sendMessage(chatId, `Добавлено ✅ (${d.toLocaleString("ru-RU")})`);
+      await sendMessage(chatId, `Added ✅ (${d.toLocaleString("en-US")})`);
     }
   } catch (err) {
     console.error("[telegram] webhook failed", err);
     try {
-      await sendMessage(chatId, "Что-то сломалось при обработке — гляну логи.");
+      await sendMessage(chatId, "Something broke while processing — I'll check the logs.");
     } catch {
       // best effort
     }

@@ -1,8 +1,25 @@
 import type { Metadata, Viewport } from "next";
+import { Rubik, Unbounded } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "./globals.css";
+
+// Body text — rounded neo-grotesque with full Cyrillic coverage.
+const rubik = Rubik({
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+// Chunky display face for headings — the neobrutalist "shout".
+const unbounded = Unbounded({
+  subsets: ["latin", "cyrillic"],
+  weight: ["700", "800", "900"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 // VERCEL_URL points at the unique per-deployment host, which is behind Vercel's
 // SSO wall and unreachable by link-preview crawlers (Facebook, Telegram, ...).
@@ -13,17 +30,17 @@ const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Карта Тиши",
-  description: "Где гуляла и что оставила",
+  title: "Tisha's Map",
+  description: "Where she walked and what she left behind",
   openGraph: {
-    title: "Карта Тиши",
-    description: "Где гуляла и что оставила",
+    title: "Tisha's Map",
+    description: "Where she walked and what she left behind",
     images: ["/preview.jpg"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Карта Тиши",
-    description: "Где гуляла и что оставила",
+    title: "Tisha's Map",
+    description: "Where she walked and what she left behind",
     images: ["/preview.jpg"],
   },
   // Google Translate rewrites text nodes/attributes in-place before React
@@ -36,12 +53,12 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#8b6f47",
+  themeColor: "#3d5bfd",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" translate="no">
+    <html lang="en" translate="no" className={`${rubik.variable} ${unbounded.variable}`}>
       <body className="notranslate">{children}</body>
     </html>
   );

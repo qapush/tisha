@@ -123,7 +123,7 @@ export default function PoopMap({
       marker.on("popupopen", (ev) => {
         const btn = ev.popup.getElement()?.querySelector<HTMLButtonElement>("[data-del]");
         btn?.addEventListener("click", () => {
-          if (confirm("Удалить эту запись?")) onDeleteRef.current(e.id);
+          if (confirm("Delete this entry?")) onDeleteRef.current(e.id);
         });
       });
       marker.addTo(map);
@@ -141,15 +141,20 @@ export default function PoopMap({
     }
   }, [visibleEntries, entries, isAdmin]);
 
-  // Clicking a row in the list flies the map to that marker.
+  // Clicking a row in the list flies the map to that marker — and, since the
+  // list can be scrolled far below the map, brings the map itself back into
+  // view so it's obvious something happened (no fullscreen scroll needed).
   useEffect(() => {
     if (!focusId) return;
     const map = mapRef.current;
     const marker = markersRef.current.get(focusId);
     if (!map || !marker) return;
+    if (!document.fullscreenElement && !isFullscreen) {
+      wrapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 17), { duration: 0.6 });
     marker.openPopup();
-  }, [focusId]);
+  }, [focusId, isFullscreen]);
 
   // Leaflet's own size cache goes stale the moment the container jumps in
   // and out of the fullscreen layout, so nudge it after the transition.
@@ -198,8 +203,8 @@ export default function PoopMap({
         type="button"
         className="map-fullscreen-btn"
         onClick={toggleFullscreen}
-        title={isFullscreen ? "Свернуть карту" : "Развернуть карту"}
-        aria-label={isFullscreen ? "Свернуть карту" : "Развернуть карту"}
+        title={isFullscreen ? "Exit fullscreen" : "Fullscreen map"}
+        aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen map"}
       >
         {isFullscreen ? (
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
@@ -225,7 +230,7 @@ export default function PoopMap({
               userMovedSliderRef.current = true;
               setVisibleCount(Number(ev.target.value));
             }}
-            aria-label="Срез по дате"
+            aria-label="Date cutoff"
           />
           <div className="map-date-slider-label">
             {shortDate(sortedEntries[clampedVisibleCount - 1].takenAt)} · {clampedVisibleCount}/{sortedEntries.length}
@@ -237,11 +242,11 @@ export default function PoopMap({
 }
 
 function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function popupHtml(e: Entry, isAdmin: boolean): string {
-  const when = new Date(e.takenAt).toLocaleString("ru-RU", {
+  const when = new Date(e.takenAt).toLocaleString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -256,9 +261,9 @@ function popupHtml(e: Entry, isAdmin: boolean): string {
       <div class="popup-when">${esc(when)}</div>
       <div class="popup-meta">
         ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}
-        ${e.source === "manual" ? ' · <span title="Пин поставлен вручную">вручную</span>' : ""}
+        ${e.source === "manual" ? ' · <span title="Pin placed manually">manual</span>' : ""}
       </div>
       ${e.note ? `<div class="popup-note">${esc(e.note)}</div>` : ""}
-      ${isAdmin ? '<button data-del class="popup-del">Удалить</button>' : ""}
+      ${isAdmin ? '<button data-del class="popup-del">Delete</button>' : ""}
     </div>`;
 }
