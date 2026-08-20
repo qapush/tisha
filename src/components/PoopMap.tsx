@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Entry } from "@/lib/types";
+import { track } from "@/lib/analytics";
 
 type Props = {
   entries: Entry[];
@@ -121,6 +122,7 @@ export default function PoopMap({
       const marker = L.marker([e.lat, e.lng], { icon });
       marker.bindPopup(() => popupHtml(e, isAdmin), { minWidth: 200 });
       marker.on("popupopen", (ev) => {
+        track("marker_click", { id: e.id });
         const btn = ev.popup.getElement()?.querySelector<HTMLButtonElement>("[data-del]");
         btn?.addEventListener("click", () => {
           if (confirm("Delete this entry?")) onDeleteRef.current(e.id);
@@ -230,6 +232,7 @@ export default function PoopMap({
               userMovedSliderRef.current = true;
               setVisibleCount(Number(ev.target.value));
             }}
+            onPointerUp={(ev) => track("date_slider_change", { value: Number(ev.currentTarget.value) })}
             aria-label="Date cutoff"
           />
           <div className="map-date-slider-label">

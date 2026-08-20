@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Rubik, Unbounded } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -59,7 +60,16 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" translate="no" className={`${rubik.variable} ${unbounded.variable}`}>
-      <body className="notranslate">{children}</body>
+      <body className="notranslate">
+        {children}
+        {process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
+          <Script
+            src="https://cloud.umami.is/script.js"
+            data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+            strategy="afterInteractive"
+          />
+        )}
+      </body>
     </html>
   );
 }
