@@ -102,7 +102,7 @@ export async function POST(req: Request) {
     if (rows.length === 0) {
       await sendMessage(chatId, "That entry already exists — skipped.");
     } else {
-      await sendMessage(chatId, `Added ✅ (${d.toLocaleString("en-US")})`);
+      await sendMessage(chatId, `Added ✅ (${d.toLocaleString("en-US", { timeZone: "UTC" })})`);
     }
   } catch (err) {
     console.error("[telegram] webhook failed", err);

@@ -245,7 +245,7 @@ export default function PoopMap({
 }
 
 function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 function popupHtml(e: Entry, isAdmin: boolean): string {
@@ -255,6 +255,7 @@ function popupHtml(e: Entry, isAdmin: boolean): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "UTC",
   });
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 

@@ -13,6 +13,18 @@ export type PreparedServer = {
   thumb: Buffer;
 };
 
+// exifr parses the naive EXIF timestamp string (e.g. "2026:08:21 09:07:23",
+// no timezone) with `new Date(year, month, day, ...)`, i.e. in whatever
+// timezone this process happens to run in. Re-reading it with the local
+// getters and re-embedding those same numbers as UTC pins the wall-clock
+// reading regardless of server timezone, so it survives the trip through
+// toISOString()/storage intact instead of drifting with process TZ.
+function toUtcWallClock(d: Date): Date {
+  return new Date(
+    Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()),
+  );
+}
+
 function looksLikeHeic(buf: Buffer, mimeType?: string, fileName?: string): boolean {
   if (mimeType && /^image\/hei[cf]/i.test(mimeType)) return true;
   if (fileName && /\.(heic|heif)$/i.test(fileName)) return true;
@@ -49,12 +61,12 @@ export async function prepareServer(
   const lat = typeof meta?.latitude === "number" && Number.isFinite(meta.latitude) ? meta.latitude : null;
   const lng = typeof meta?.longitude === "number" && Number.isFinite(meta.longitude) ? meta.longitude : null;
 
-  const takenAt: Date =
-    meta?.DateTimeOriginal instanceof Date
-      ? meta.DateTimeOriginal
-      : meta?.CreateDate instanceof Date
-        ? meta.CreateDate
-        : opts.fallbackDate;
+  const exifDate = meta?.DateTimeOriginal instanceof Date
+    ? meta.DateTimeOriginal
+    : meta?.CreateDate instanceof Date
+      ? meta.CreateDate
+      : null;
+  const takenAt: Date = exifDate ? toUtcWallClock(exifDate) : opts.fallbackDate;
 
   // .rotate() with no args applies the EXIF orientation tag — matches
   // createImageBitmap's imageOrientation: "from-image" in the browser pipeline.

@@ -14,8 +14,9 @@ const dayFmt = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   month: "long",
   year: "numeric",
+  timeZone: "UTC",
 });
-const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit" });
+const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
 export default function EntryList({ entries, isAdmin, onFocus, onDelete }: Props) {
   if (entries.length === 0) {
@@ -29,7 +30,10 @@ export default function EntryList({ entries, isAdmin, onFocus, onDelete }: Props
   // Group by calendar day so the list reads like a diary rather than a dump.
   const groups = new Map<string, Entry[]>();
   for (const e of entries) {
-    const key = new Date(e.takenAt).toDateString();
+    // UTC calendar day (matches how takenAt was normalized on ingest), not
+    // the viewer's local day — otherwise entries near midnight jump days
+    // depending on who's looking.
+    const key = new Date(e.takenAt).toISOString().slice(0, 10);
     const bucket = groups.get(key);
     if (bucket) bucket.push(e);
     else groups.set(key, [e]);

@@ -16,6 +16,18 @@ export type Prepared = {
   previewUrl: string;
 };
 
+// exifr parses the naive EXIF timestamp string (e.g. "2026:08:21 09:07:23",
+// no timezone) with `new Date(year, month, day, ...)`, i.e. in whatever
+// timezone the browser happens to be in. Re-reading it with the local
+// getters and re-embedding those same numbers as UTC pins the wall-clock
+// reading regardless of viewer timezone, matching the server pipeline in
+// imageServer.ts.
+function toUtcWallClock(d: Date): Date {
+  return new Date(
+    Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()),
+  );
+}
+
 async function looksLikeHeic(file: File): Promise<boolean> {
   if (/^image\/hei[cf]/i.test(file.type)) return true;
   if (/\.(heic|heif)$/i.test(file.name)) return true;
@@ -110,12 +122,12 @@ export async function prepare(file: File): Promise<Prepared> {
   const lat = typeof meta?.latitude === "number" && Number.isFinite(meta.latitude) ? meta.latitude : null;
   const lng = typeof meta?.longitude === "number" && Number.isFinite(meta.longitude) ? meta.longitude : null;
 
-  const takenAt: Date =
-    meta?.DateTimeOriginal instanceof Date
-      ? meta.DateTimeOriginal
-      : meta?.CreateDate instanceof Date
-        ? meta.CreateDate
-        : new Date(file.lastModified);
+  const exifDate = meta?.DateTimeOriginal instanceof Date
+    ? meta.DateTimeOriginal
+    : meta?.CreateDate instanceof Date
+      ? meta.CreateDate
+      : null;
+  const takenAt: Date = exifDate ? toUtcWallClock(exifDate) : new Date(file.lastModified);
 
   const bitmap = await decode(file);
   try {
