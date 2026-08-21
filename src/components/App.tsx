@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import EntryList from "./EntryList";
 import UploadPanel from "./UploadPanel";
 import LoginBar from "./LoginBar";
+import VideoScrub from "./VideoScrub";
 import type { Entry, Pending } from "@/lib/types";
 import { uploadEntry } from "@/lib/upload";
 import { sameSpot } from "@/lib/dedupe";
@@ -208,6 +209,8 @@ export default function App({ initialIsAdmin }: { initialIsAdmin: boolean }) {
         )}
         <LoginBar isAdmin={isAdmin} onChange={setIsAdmin} />
       </header>
+
+      <VideoScrub />
 
       {isAdmin && (
         <UploadPanel
