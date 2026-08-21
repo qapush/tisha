@@ -24,14 +24,28 @@ export default function VideoScrub() {
   }, []);
 
   useEffect(() => {
-    const scrubToFraction = (fraction: number) => {
+    // touchmove/mousemove can fire far more often than the screen refreshes
+    // (some Android browsers coalesce at >120Hz) — pushing every one straight
+    // into currentTime queues up more seeks than the decoder can keep up
+    // with. Keep only the latest pending fraction and apply it once per frame.
+    let pendingFraction: number | null = null;
+    let rafId = 0;
+
+    const applyPending = () => {
+      rafId = 0;
       const video = videoRef.current;
-      if (!video || !Number.isFinite(video.duration)) return;
-      video.currentTime = Math.min(1, Math.max(0, fraction)) * video.duration;
+      if (video && pendingFraction !== null && Number.isFinite(video.duration)) {
+        video.currentTime = pendingFraction * video.duration;
+      }
+      pendingFraction = null;
     };
 
     const scrubToClientX = (clientX: number) => {
-      scrubToFraction(clientX / document.documentElement.clientWidth);
+      pendingFraction = Math.min(
+        1,
+        Math.max(0, clientX / document.documentElement.clientWidth),
+      );
+      if (!rafId) rafId = requestAnimationFrame(applyPending);
     };
 
     const onMouseMove = (e: MouseEvent) => scrubToClientX(e.clientX);
@@ -50,6 +64,7 @@ export default function VideoScrub() {
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("touchmove", onTouchMove, { capture: true });
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
 
